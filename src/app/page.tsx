@@ -12,9 +12,20 @@ export default function Page() {
   const [signedIn, setSignedIn] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [posts, setPosts] = useState<any[]>([]);
-  const [user, setUser] = useState<any>();
+  const [updating , setUpdating] = useState<boolean>(false);
 
   const router = useRouter();
+
+  async function getRandomPosts() {
+    setUpdating(true)
+    const { data, error } = await supabase.from("posts").select("*").order("i_at", { ascending: false }).limit(10);
+    if (error) {
+      console.error(error);
+    } else {
+      setPosts(data);
+    }
+    setUpdating(false)
+  }
 
   useEffect(() => {
     async function checkSession() {
@@ -24,25 +35,33 @@ export default function Page() {
       if (session) {
         setSignedIn(true);
         setLoading(false);
-        setUser(session);
       } else {
         setSignedIn(false);
         router.push("/login");
       }
     }
-
-    async function getRandomPosts() {
-      const { data, error } = await supabase.from("posts").select("*").order("i_at", { ascending: false }).limit(10);
-      if (error) {
-        console.error(error);
-      } else {
-        setPosts(data);
-      }
-    }
-
-    getRandomPosts();
+    
+    getRandomPosts()
     checkSession();
   }, []);
+
+
+  useEffect(() => {
+    const channel = supabase.channel('Update_Home_Page').on(
+      'postgres_changes',
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "posts",
+      },
+      (payload) => {
+        getRandomPosts()
+      }).subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [supabase])
 
   return loading ? (
     <div>
@@ -54,7 +73,7 @@ export default function Page() {
       {signedIn ? (
         <div className="w-screen flex flex-col justify-center items-center gap-8">
           {posts.map((post) => (
-            <PostCard key={post.post_id} post={post} />
+            <PostCard key={post.post_id} post={post} updating={updating} />
           ))}
         </div>
       ) : (
