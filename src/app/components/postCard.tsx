@@ -8,23 +8,27 @@ import { FormEvent, useEffect, useState } from "react";
 export default function PostCard({ post, updating }: { post: any, updating: boolean }) {
   const [loading, setLoading] = useState<boolean>(true)
   const [user, setUser] = useState<any>();
-  const [currentUser, setCurrentUser] = useState<any>();
+  const [currentUser, setCurrentUser] = useState<any>(undefined);
   const [liked, setLiked] = useState<boolean>(false);
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
   const [comments, setComments] = useState<any[]>([]);
-  const [commentUser , setCommentUser] = useState<string[]>([]);
+  const [commentUser, setCommentUser] = useState<string[]>([]);
   const supabase = createClient();
   async function getLikedStatus() {
-    const { data, error } = await supabase.from('postlikes').select('user_id').eq('post_id', post.post_id)
+    const { data, error } = await supabase.from('postlikes').select('post_id').eq('user_id', currentUser.id).eq('post_id', post.post_id)
     if (error) {
       console.error(error);
     }
     if (data!.length > 0) {
       setLiked(true);
     }
-    else{
+    else {
       setLiked(false);
     }
+  }
+  async function getCurrentUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user);
   }
 
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -38,17 +42,18 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
         setUser(data![0].raw_user_meta_data.name);
       }
     }
-    async function getCurrentUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-    }
-    getLikedStatus()
     getCurrentUser()
     GetUser()
     setLoading(false)
   }, [])
 
   useEffect(() => {
+    if (currentUser === undefined) return;
+    getLikedStatus()
+  }, [currentUser])
+
+  useEffect(() => {
+    if (currentUser === undefined) return;
     getLikedStatus()
   }, [post])
 
@@ -78,34 +83,47 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     }
   }
 
-  async function getComments(){
-    const { data, error } = await supabase.from('comments').select(` post_id , content , users(raw_user_meta_data), replied_to , i_at`).eq('post_id', post.post_id).limit(50)
-    if(error){
+  async function getComments() {
+    const { data, error } = await supabase.from('comments').select(`comment_id, post_id , content , users(raw_user_meta_data), replied_to , i_at, user_id`).eq('post_id', post.post_id)
+    if (error) {
       console.error(error);
     }
     setComments(data!);
   }
 
-  async function handleCommentOpen(){
+  async function handleCommentOpen() {
     setShowDrawer(true)
-    if(post.comments === 0) return;
+    if (post.comments === 0) return;
     getComments()
   }
 
-  async function handleCommentsPost(e: FormEvent<HTMLFormElement>){
+  async function handleCommentsPost(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const comment = formData.get('comment');
-    const { data, error } = await supabase.from('comments').insert({ post_id: post.post_id, user_id: currentUser.id, content: comment, replied_to: null, i_at: new Date()})
-    if(error){
+    const { data, error } = await supabase.from('comments').insert({ post_id: post.post_id, user_id: currentUser.id, content: comment, replied_to: null, i_at: new Date() }).select(`comment_id, post_id , content , users(raw_user_meta_data), replied_to , i_at, user_id`)
+    if (error) {
       console.error(error);
     }
 
     const { error: updateE } = await supabase.from('posts').update({ comments: post.comments + 1 }).eq('post_id', post.post_id)
-    if(updateE){
+    if (updateE) {
       console.error(updateE);
     }
-    setComments([...comments, data]);
+    setComments([...comments, data![0]]);
+  }
+
+  async function handleDeleteComment(comment_id: string){
+    const { error: deleteE } = await supabase.from('comments').delete().eq('comment_id', comment_id)
+    if (deleteE) {
+      console.error(deleteE);
+    }
+    const { error: updateE } = await supabase.from('posts').update({ comments: post.comments - 1 }).eq('post_id', post.post_id)
+    if (updateE) {
+      console.error(updateE);
+    }
+    const newComments = comments.filter(comment => comment.comment_id !== comment_id)
+    setComments(newComments);
   }
 
   return (
@@ -119,22 +137,36 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
           <Image src="/comments/close.svg" width={35} height={35} alt="CloseLogo" className=" m-4 hover:bg-slate-200 focus:bg-slate-400 rounded-full transition-all" />
         </button>
         <form className="flex flex-col gap-4 p-4" onSubmit={handleCommentsPost}>
-        <input type="text" placeholder="Add a comment..." className="w-full p-4 border-b-2 border-slate-200 outline-none" name="comment"/>
-        <button type="submit" className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Comment</button>
+          <input type="text" placeholder="Add a comment..." className="w-full p-4 border-b-2 border-slate-200 outline-none" name="comment" />
+          <button type="submit" className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Comment</button>
         </form>
         {
           comments.length === 0 ? <div className="text-center flex justify-center items-center h-screen font-extrabold text-slate-600 text-xl">Nothing here yet...</div>
-          : 
-          <div className="flex flex-col gap-4 p-4">
-          {comments.map((comment) => (
-            <div key={comment.comment_id} className="flex flex-col gap-4 p-4 bg-slate-200 rounded-lg">
-              <p className="text-slate-800 text-lg">{comment.content}</p>
-              <p className="text-slate-600 text-sm font-bold">{comment.users.raw_user_meta_data.name}</p>
-              <p className="text-slate-600 text-sm">{moment(comment.i_at).startOf('hour').fromNow()}</p>
+            :
+            <div className="flex flex-col gap-4 p-4">
+              {comments.map((comment) => (
+                <div key={comment.comment_id} className="flex flex-col gap-4 p-4 bg-slate-200 rounded-lg">
+                  <p className="text-slate-800 text-lg">{comment.content}</p>
+                  <p className="text-slate-600 text-sm font-bold">{comment.users.raw_user_meta_data.name}</p>
+                  <div className="flex flex-row gap-4 justify-end items-center">
+                    <p className="text-slate-600 text-sm">{moment(comment.i_at).startOf('hour').fromNow()}</p>
+                    <button className="flex flex-row gap-1">
+                      <p>{comment.replied_to}</p>
+                      <Image src="/comments/reply.svg" width={35} height={35} alt="ReplyLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                    </button>
+                    <button >
+                      <Image src="/postCard/likes.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                    </button>
+                    {comment.user_id === currentUser.id
+                      ?
+                      <button onClick={() => {handleDeleteComment(comment.comment_id)}}>
+                        <Image src="/comments/delete.svg" width={35} height={35} alt="DeleteLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                      </button> : null}
+                  </div>
+                </div>
+              ))
+              }
             </div>
-          ))
-          }
-          </div>
         }
       </Drawer>
       {

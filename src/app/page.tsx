@@ -18,7 +18,7 @@ export default function Page() {
 
   async function getRandomPosts() {
     setUpdating(true)
-    const { data, error } = await supabase.from("posts").select("*").order("i_at", { ascending: false }).limit(10);
+    const { data, error } = await supabase.from("posts").select("*").order("i_at", { ascending: false });
     if (error) {
       console.error(error);
     } else {
