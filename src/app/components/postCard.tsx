@@ -5,6 +5,11 @@ import moment from "moment";
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 
+type CommentLiked = {
+  comment_id: string,
+  user_id: string
+}
+
 export default function PostCard({ post, updating }: { post: any, updating: boolean }) {
   const [loading, setLoading] = useState<boolean>(true)
   const [user, setUser] = useState<any>();
@@ -13,11 +18,13 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentUser, setCommentUser] = useState<string[]>([]);
+  const [commentLiked, setCommentLiked] = useState<CommentLiked[]>([]);
   const supabase = createClient();
   async function getLikedStatus() {
     const { data, error } = await supabase.from('postlikes').select('post_id').eq('user_id', currentUser.id).eq('post_id', post.post_id)
     if (error) {
       console.error(error);
+      return
     }
     if (data!.length > 0) {
       setLiked(true);
@@ -31,6 +38,15 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     setCurrentUser(user);
   }
 
+  async function getLikedComments() {
+    const { data, error } = await supabase.from('commentlikes').select('*').eq('user_id', currentUser.id)
+    if (error) {
+      console.error(error);
+      return
+    }
+    setCommentLiked(data!);
+  }
+
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   useEffect(() => {
@@ -38,6 +54,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
       const { data, error } = await supabase.from('users').select('raw_user_meta_data').eq('id', post.user_id)
       if (error) {
         console.error(error);
+        return
       } else {
         setUser(data![0].raw_user_meta_data.name);
       }
@@ -58,15 +75,18 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
   }, [post])
 
 
+
   async function handleLikePost() {
     if (!liked) {
       const { error: postLikeE } = await supabase.from('postlikes').insert([{ post_id: post.post_id, user_id: currentUser.id }])
       if (postLikeE) {
         console.error(postLikeE);
+        return
       }
       const { error: postE } = await supabase.from('posts').update({ likes: post.likes + 1 }).eq('post_id', post.post_id).select()
       if (postE) {
         console.error(postE);
+        return
       }
       setLiked(true)
     }
@@ -74,10 +94,12 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
       const { error: postLikeE } = await supabase.from('postlikes').delete().eq('post_id', post.post_id).eq('user_id', currentUser.id)
       if (postLikeE) {
         console.error(postLikeE);
+        return
       }
       const { error: postE } = await supabase.from('posts').update({ likes: post.likes - 1 }).eq('post_id', post.post_id)
       if (postE) {
         console.error(postE);
+        return
       }
       setLiked(false)
     }
@@ -87,6 +109,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     const { data, error } = await supabase.from('comments').select(`comment_id, post_id , content , users(raw_user_meta_data), replied_to , i_at, user_id`).eq('post_id', post.post_id)
     if (error) {
       console.error(error);
+      return
     }
     setComments(data!);
   }
@@ -95,6 +118,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     setShowDrawer(true)
     if (post.comments === 0) return;
     getComments()
+    getLikedComments()
   }
 
   async function handleCommentsPost(e: FormEvent<HTMLFormElement>) {
@@ -104,26 +128,51 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     const { data, error } = await supabase.from('comments').insert({ post_id: post.post_id, user_id: currentUser.id, content: comment, replied_to: null, i_at: new Date() }).select(`comment_id, post_id , content , users(raw_user_meta_data), replied_to , i_at, user_id`)
     if (error) {
       console.error(error);
+      return
     }
 
     const { error: updateE } = await supabase.from('posts').update({ comments: post.comments + 1 }).eq('post_id', post.post_id)
     if (updateE) {
       console.error(updateE);
+      return
     }
     setComments([...comments, data![0]]);
   }
 
-  async function handleDeleteComment(comment_id: string){
+  async function handleDeleteComment(comment_id: string) {
     const { error: deleteE } = await supabase.from('comments').delete().eq('comment_id', comment_id)
     if (deleteE) {
       console.error(deleteE);
+      return
     }
     const { error: updateE } = await supabase.from('posts').update({ comments: post.comments - 1 }).eq('post_id', post.post_id)
     if (updateE) {
       console.error(updateE);
+      return
     }
     const newComments = comments.filter(comment => comment.comment_id !== comment_id)
     setComments(newComments);
+  }
+
+  async function handleLikeComment(comment_id: string) {
+    if (commentLiked.find(like => like.comment_id === comment_id && like.user_id === currentUser.id)) {
+      const { error: likeE } = await supabase.from('commentlikes').delete().eq('comment_id', comment_id).eq('user_id', currentUser.id)
+      if (likeE) {
+        console.error(likeE);
+        return
+      }
+      const newCommentLiked = commentLiked.filter(like => like.comment_id !== comment_id)
+      setCommentLiked(newCommentLiked)
+      getComments()
+      return
+    }
+    const { error: likeE } = await supabase.from('commentlikes').insert({ comment_id: comment_id, user_id: currentUser.id, i_at: new Date })
+    if (likeE) {
+      console.error(likeE);
+      return
+    }
+    setCommentLiked([...commentLiked, { comment_id, user_id: currentUser.id }])
+    getComments()
   }
 
   return (
@@ -154,12 +203,14 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
                       <p>{comment.replied_to}</p>
                       <Image src="/comments/reply.svg" width={35} height={35} alt="ReplyLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
                     </button>
-                    <button >
-                      <Image src="/postCard/likes.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                    <button onClick={() => { handleLikeComment(comment.comment_id) }} >
+                      {
+                        commentLiked.find(like => like.comment_id === comment.comment_id && like.user_id === currentUser.id) ? <Image src="/postCard/liked.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" /> : <Image src="/postCard/likes.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                      }
                     </button>
                     {comment.user_id === currentUser.id
                       ?
-                      <button onClick={() => {handleDeleteComment(comment.comment_id)}}>
+                      <button onClick={() => { handleDeleteComment(comment.comment_id) }}>
                         <Image src="/comments/delete.svg" width={35} height={35} alt="DeleteLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
                       </button> : null}
                   </div>
