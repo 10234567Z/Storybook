@@ -17,8 +17,9 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
   const [liked, setLiked] = useState<boolean>(false);
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
   const [comments, setComments] = useState<any[]>([]);
-  const [commentUser, setCommentUser] = useState<string[]>([]);
   const [commentLiked, setCommentLiked] = useState<CommentLiked[]>([]);
+  const [replyingTo, setReplyingTo] = useState<string>("")
+  const [replies, setReplies] = useState<any[]>([])
   const supabase = createClient();
   async function getLikedStatus() {
     const { data, error } = await supabase.from('postlikes').select('post_id').eq('user_id', currentUser.id).eq('post_id', post.post_id)
@@ -139,6 +140,25 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     setComments([...comments, data![0]]);
   }
 
+  async function handleReplyPost(e: FormEvent<HTMLFormElement>, comment_id: string) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const comment = formData.get('comment');
+    const { data, error } = await supabase.from('comments').insert({ post_id: post.post_id, user_id: currentUser.id, content: comment, replied_to: comment_id, i_at: new Date() }).select(`comment_id, post_id , content , users(raw_user_meta_data), replied_to , i_at, user_id`)
+    if (error) {
+      console.error(error);
+      return
+    }
+    const { error: updateE } = await supabase.from('posts').update({ comments: post.comments + 1 }).eq('post_id', post.post_id)
+    if (updateE) {
+      console.error(updateE);
+      return
+    }
+    setComments([...comments, data![0]]);
+    setReplyingTo("")
+    showReplies(comment_id)
+  }
+
   async function handleDeleteComment(comment_id: string) {
     const { error: deleteE } = await supabase.from('comments').delete().eq('comment_id', comment_id)
     if (deleteE) {
@@ -152,6 +172,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     }
     const newComments = comments.filter(comment => comment.comment_id !== comment_id)
     setComments(newComments);
+    setReplies([])
   }
 
   async function handleLikeComment(comment_id: string) {
@@ -175,6 +196,26 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     getComments()
   }
 
+  async function handleReplyTo(comment_id: string) {
+    if (replyingTo === comment_id) {
+      setReplyingTo("")
+      return
+    }
+    setReplyingTo(comment_id)
+  }
+  async function showReplies(comment_id: string) {
+    if (replies.length !== 0 && replies[0].replied_to === comment_id) {
+      setReplies([])
+      return;
+    }
+    const { data: commentsData, error: fetchError } = await supabase.from('comments').select(`comment_id, post_id , content , users(raw_user_meta_data), replied_to , i_at, user_id`).eq('post_id', post.post_id).eq('replied_to', comment_id)
+    if (fetchError) {
+      console.error(fetchError);
+      return
+    }
+    setReplies(commentsData!)
+  }
+
   return (
     <>
       <Drawer anchor="right" open={showDrawer} onClose={() => setShowDrawer(false)} PaperProps={{
@@ -194,12 +235,13 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
             :
             <div className="flex flex-col gap-4 p-4">
               {comments.map((comment) => (
+                comment.replied_to === null &&
                 <div key={comment.comment_id} className="flex flex-col gap-4 p-4 bg-slate-200 rounded-lg">
                   <p className="text-slate-800 text-lg">{comment.content}</p>
                   <p className="text-slate-600 text-sm font-bold">{comment.users.raw_user_meta_data.name}</p>
                   <div className="flex flex-row gap-4 justify-end items-center">
                     <p className="text-slate-600 text-sm">{moment(comment.i_at).startOf('hour').fromNow()}</p>
-                    <button className="flex flex-row gap-1">
+                    <button className="flex flex-row gap-1" onClick={() => { handleReplyTo(comment.comment_id) }}>
                       <p>{comment.replied_to}</p>
                       <Image src="/comments/reply.svg" width={35} height={35} alt="ReplyLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
                     </button>
@@ -214,6 +256,45 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
                         <Image src="/comments/delete.svg" width={35} height={35} alt="DeleteLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
                       </button> : null}
                   </div>
+                  {
+                    replyingTo === comment.comment_id
+                      ?
+                      <form className="flex flex-row gap-4 p-4" onSubmit={(e) => { handleReplyPost(e, comment.comment_id) }}>
+                        <input type="text" placeholder="Add a reply..." className="w-full p-4 border-b-2 border-slate-200 outline-none rounded-lg" name="comment" />
+                        <button type="submit" className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Comment</button>
+                        <button onClick={() => setReplyingTo("")} className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Cancel</button>
+                      </form>
+                      :
+                      null
+                  }
+                  {
+                    comments.find(reply => reply.replied_to === comment.comment_id) !== undefined &&
+                    <button onClick={() => { showReplies(comment.comment_id) }}>
+                      <p className="text-blue-600 font-semibold" >View Replies</p>
+                    </button>
+                  }
+                  {
+                    replies.length !== 0 && replies.map(reply => (
+                      reply.replied_to === comment.comment_id &&
+                      <div key={reply.comment_id} className="flex flex-col gap-4 p-4 bg-slate-100 rounded-lg">
+                        <p className="text-slate-800 text-lg">{reply.content}</p>
+                        <p className="text-slate-600 text-sm font-bold">{reply.users.raw_user_meta_data.name}</p>
+                        <div className="flex flex-row gap-4 justify-end items-center">
+                          <p className="text-slate-600 text-sm">{moment(reply.i_at).startOf('hour').fromNow()}</p>
+                          <button onClick={() => { handleLikeComment(reply.comment_id) }} >
+                            {
+                              commentLiked.find(like => like.comment_id === reply.comment_id && like.user_id === currentUser.id) ? <Image src="/postCard/liked.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" /> : <Image src="/postCard/likes.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                            }
+                          </button>
+                          {reply.user_id === currentUser.id
+                            ?
+                            <button onClick={() => { handleDeleteComment(reply.comment_id) }}>
+                              <Image src="/comments/delete.svg" width={35} height={35} alt="DeleteLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                            </button> : null}
+                        </div>
+                      </div>
+                    ))
+                  }
                 </div>
               ))
               }

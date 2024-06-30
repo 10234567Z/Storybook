@@ -3,7 +3,6 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navbar from "./components/navbar";
-import { useCookies } from "next-client-cookies";
 import PostCard from "./components/postCard";
 
 export default function Page() {
