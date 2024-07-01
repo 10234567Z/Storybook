@@ -20,6 +20,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
   const [commentLiked, setCommentLiked] = useState<CommentLiked[]>([]);
   const [replyingTo, setReplyingTo] = useState<string>("")
   const [replies, setReplies] = useState<any[]>([])
+  const [editing, setEditing] = useState<string>("")
   const supabase = createClient();
   async function getLikedStatus() {
     const { data, error } = await supabase.from('postlikes').select('post_id').eq('user_id', currentUser.id).eq('post_id', post.post_id)
@@ -216,6 +217,17 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     setReplies(commentsData!)
   }
 
+  async function editComment(comment_id: string, comment: string) {
+    const { error } = await supabase.from('comments').update({ content: comment }).eq('comment_id', comment_id)
+    if (error) {
+      console.error(error);
+      return
+    }
+    setEditing("")
+    setReplies([])
+    getComments()
+  }
+
   return (
     <>
       <Drawer anchor="right" open={showDrawer} onClose={() => setShowDrawer(false)} PaperProps={{
@@ -237,7 +249,17 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
               {comments.map((comment) => (
                 comment.replied_to === null &&
                 <div key={comment.comment_id} className="flex flex-col gap-4 p-4 bg-slate-200 rounded-lg">
-                  <p className="text-slate-800 text-lg">{comment.content}</p>
+                  {
+                    editing === comment.comment_id
+                      ?
+                      <form onSubmit={(e) => { e.preventDefault(), editComment(comment.comment_id, e.currentTarget.comment.value) }} className="flex flex-row gap-4 p-4">
+                        <input type="text" defaultValue={comment.content} className="w-full p-4 border-b-2 border-slate-200 outline-none rounded-lg" name="comment" />
+                        <button type="submit" className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Edit</button>
+                        <button onClick={() => setEditing("")} className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Cancel</button>
+                      </form>
+                      :
+                      <p className="text-slate-800 text-lg">{comment.content}</p>
+                  }
                   <p className="text-slate-600 text-sm font-bold">{comment.users.raw_user_meta_data.name}</p>
                   <div className="flex flex-row gap-4 justify-end items-center">
                     <p className="text-slate-600 text-sm">{moment(comment.i_at).startOf('hour').fromNow()}</p>
@@ -252,9 +274,15 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
                     </button>
                     {comment.user_id === currentUser.id
                       ?
-                      <button onClick={() => { handleDeleteComment(comment.comment_id) }}>
-                        <Image src="/comments/delete.svg" width={35} height={35} alt="DeleteLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
-                      </button> : null}
+                      <>
+                        <button onClick={() => { handleDeleteComment(comment.comment_id) }}>
+                          <Image src="/comments/delete.svg" width={35} height={35} alt="DeleteLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                        </button>
+                        <button onClick={() => { setEditing(comment.comment_id) }}>
+                          <Image src="/comments/edit.svg" width={35} height={35} alt="EditLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-lg transition-all" />
+                        </button>
+                      </>
+                      : null}
                   </div>
                   {
                     replyingTo === comment.comment_id
@@ -277,20 +305,38 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
                     replies.length !== 0 && replies.map(reply => (
                       reply.replied_to === comment.comment_id &&
                       <div key={reply.comment_id} className="flex flex-col gap-4 p-4 bg-slate-100 rounded-lg">
-                        <p className="text-slate-800 text-lg">{reply.content}</p>
+                        {
+                          editing === reply.comment_id
+                            ?
+                            <form onSubmit={(e) => { e.preventDefault(), editComment(reply.comment_id, e.currentTarget.comment.value) }} className="flex flex-row gap-4 p-4">
+                              <input type="text" defaultValue={reply.content} className="w-full p-4 border-b-2 border-slate-200 outline-none rounded-lg" name="comment" />
+                              <button type="submit" className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Edit</button>
+                              <button onClick={() => setEditing("")} className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Cancel</button>
+                            </form>
+                            :
+                            <p className="text-slate-800 text-lg">{reply.content}</p>
+                        }
                         <p className="text-slate-600 text-sm font-bold">{reply.users.raw_user_meta_data.name}</p>
                         <div className="flex flex-row gap-4 justify-end items-center">
-                          <p className="text-slate-600 text-sm">{moment(reply.i_at).startOf('hour').fromNow()}</p>
+                          <p className="text-slate-600 text-sm">{moment(reply.i_at).startOf('minutes').fromNow()}</p>
                           <button onClick={() => { handleLikeComment(reply.comment_id) }} >
                             {
                               commentLiked.find(like => like.comment_id === reply.comment_id && like.user_id === currentUser.id) ? <Image src="/postCard/liked.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" /> : <Image src="/postCard/likes.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
                             }
                           </button>
-                          {reply.user_id === currentUser.id
-                            ?
-                            <button onClick={() => { handleDeleteComment(reply.comment_id) }}>
-                              <Image src="/comments/delete.svg" width={35} height={35} alt="DeleteLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
-                            </button> : null}
+                          {
+                            reply.user_id === currentUser.id
+                              ?
+                              <>
+                                <button onClick={() => { handleDeleteComment(reply.comment_id) }}>
+                                  <Image src="/comments/delete.svg" width={35} height={35} alt="DeleteLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
+                                </button>
+                                <button onClick={() => { setEditing(reply.comment_id) }}>
+                                  <Image src="/comments/edit.svg" width={35} height={35} alt="EditLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-lg transition-all" />
+                                </button>
+                              </>
+                              : null
+                          }
                         </div>
                       </div>
                     ))
