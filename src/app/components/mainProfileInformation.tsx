@@ -9,6 +9,7 @@ export default function MainProfileInfo({ user }: any) {
     const [numberofComments, setNumberofComments] = useState<number>(0)
     const [numberofFollowers, setNumberofFollowers] = useState<number>(0)
     const [numberofFollowing, setNumberofFollowing] = useState<number>(0)
+    const [editing , setEditing] = useState<boolean>(false)
     const supabase = createClient()
     useEffect(() => {
         async function fetchUserStats() {
@@ -64,6 +65,28 @@ export default function MainProfileInfo({ user }: any) {
         fetchFollowings()
         fetchUserStats()
     }, [])
+
+    function handleEditing(){
+        setEditing(!editing)
+    }
+
+    async function handleEditSubmit(e: any){
+        e.preventDefault()
+        const formData = new FormData(e.currentTarget)
+        const bio = formData.get('bio') as string
+        const userMetadata = user.user_metadata;
+        userMetadata.bio = bio;
+        const { data, error } = await supabase
+            .from('users')
+            .update({ raw_user_meta_data: userMetadata })
+            .eq('id', user.id)
+        if (error) {
+            console.error(error)
+        }
+        else{
+            setEditing(false)
+        }
+    }
     return (
         <div className="w-screen flex flex-col sm:flex-row justify-center items-center">
             <div className="w-1/3 h-1/3 flex flex-col justify-center items-center">
@@ -71,7 +94,21 @@ export default function MainProfileInfo({ user }: any) {
             </div>
             <div>
                 <h3 className="text-lg font-bold">{user.user_metadata.name}</h3>
-                <p className="text-lg">{user.user_metadata.bio === '' ? "No bio set-up yet by the user yet" : user.user_metadata.bio}</p>
+                <div className="flex gap-4">
+                    {
+                        editing ? (
+                            <form onSubmit={handleEditSubmit}>
+                                <input type="text" name="bio" placeholder="bio" />
+                                <button>Save</button>
+                            </form>
+                        )
+                        : 
+                        <p className="text-lg">{user.user_metadata.bio === '' ? "No bio set by user yet.." : user.user_metadata.bio}</p>
+                    }
+                    <button onClick={handleEditing}>
+                        <Image src="/postCard/edit.svg" alt="Edit" width={25} height={25} />
+                    </button>
+                </div>
                 <div className="flex flex-row gap-4 mt-6">
                     <p className="text-lg"><strong>Posts</strong>: {numberofPosts}</p>
                     <p className="text-lg"><strong>Comments</strong>: {numberofComments}</p>
