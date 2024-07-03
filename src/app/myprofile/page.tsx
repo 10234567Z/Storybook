@@ -120,7 +120,8 @@ export default function Page() {
           <button onClick={handleOpenPostDrawer} className=" p-4 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">Create Post</button>
           <div className="w-screen py-3 font-extrabold text-2xl text-center bg-black text-white">Posts</div>
           <div className="w-screen flex flex-col justify-center items-center gap-8">
-            {posts.map((post) => (
+            
+            {posts.length === 0 ? "Nothing here yet..." : posts.map((post) => (
               <PostCard key={post.post_id} post={post} updating={updating} />
             ))}
           </div>
