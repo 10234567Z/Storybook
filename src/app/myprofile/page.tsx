@@ -7,51 +7,72 @@ import MainProfileInfo from "../components/mainProfileInformation";
 import { Drawer, useMediaQuery } from "@mui/material";
 import Image from "next/image";
 import moment from "moment";
+import PostCard from "../components/postCard";
 
 export default function Page() {
   const supabase = createClient();
 
   const [signedIn, setSignedIn] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [currentUser, setCurrentUser] = useState<any>({});
+  const [currentUser, setCurrentUser] = useState<any>(undefined);
   const [openPostDrawer, setOpenPostDrawer] = useState<boolean>(false);
   const [posts, setPosts] = useState<any[]>([]);
+  const [updating, setUpdating] = useState<boolean>(false);
 
   const router = useRouter();
 
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   async function getPosts() {
+    setUpdating(true)
     const { data, error } = await supabase.from("posts").select("*").eq('user_id', currentUser.id).order("i_at", { ascending: false });
     if (error) {
       console.error(error);
+      return
+    }
+    setPosts(data);
+    setUpdating(false)
+  }
+  async function checkSession() {
+    const {
+      data: { user: session },
+    } = await supabase.auth.getUser();
+    if (session) {
+      setSignedIn(true);
+      setLoading(false);
+      setCurrentUser(session);
     } else {
-      setPosts(data);
+      setSignedIn(false);
+      router.push("/login");
     }
   }
-
   useEffect(() => {
-    async function checkSession() {
-      const {
-        data: { user: session },
-      } = await supabase.auth.getUser();
-      if (session) {
-        setSignedIn(true);
-        setLoading(false);
-        setCurrentUser(session);
-      } else {
-        setSignedIn(false);
-        router.push("/login");
-      }
-    }
     checkSession();
   }, []);
 
   useEffect(() => {
-    if (currentUser.id) {
+    if (currentUser !== undefined) {
       getPosts();
     }
   }, [currentUser])
+
+  useEffect(() => {
+    const channel = supabase.channel('Update_Profile_Page').on(
+      'postgres_changes',
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "posts",
+      },
+      (payload) => {
+        checkSession()
+        getPosts()
+      }).subscribe()
+
+    return () => {
+      channel.unsubscribe()
+    }
+  }, [supabase])
 
   function handleOpenPostDrawer() {
     setOpenPostDrawer(!openPostDrawer)
@@ -67,7 +88,7 @@ export default function Page() {
       console.error(error);
     } else {
       setOpenPostDrawer(false);
-      router.push("/myprofile");
+      getPosts();
     }
   }
 
@@ -97,6 +118,12 @@ export default function Page() {
         <div className="w-screen flex flex-col justify-center items-center gap-8">
           <MainProfileInfo user={currentUser} />
           <button onClick={handleOpenPostDrawer} className=" p-4 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">Create Post</button>
+          <div className="w-screen py-3 font-extrabold text-2xl text-center bg-black text-white">Posts</div>
+          <div className="w-screen flex flex-col justify-center items-center gap-8">
+            {posts.map((post) => (
+              <PostCard key={post.post_id} post={post} updating={updating} />
+            ))}
+          </div>
         </div>
       ) : (
         <>

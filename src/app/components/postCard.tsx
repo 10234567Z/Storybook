@@ -21,6 +21,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
   const [replyingTo, setReplyingTo] = useState<string>("")
   const [replies, setReplies] = useState<any[]>([])
   const [editing, setEditing] = useState<string>("")
+  const [openEditDrawer, setOpenEditDrawer] = useState<boolean>(false);
   const supabase = createClient();
   async function getLikedStatus() {
     const { data, error } = await supabase.from('postlikes').select('post_id').eq('user_id', currentUser.id).eq('post_id', post.post_id)
@@ -76,8 +77,6 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     getLikedStatus()
   }, [post])
 
-
-
   async function handleLikePost() {
     if (!liked) {
       const { error: postLikeE } = await supabase.from('postlikes').insert([{ post_id: post.post_id, user_id: currentUser.id }])
@@ -105,6 +104,15 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
       }
       setLiked(false)
     }
+  }
+
+  async function deletePost() {
+    const { error: postE } = await supabase.from('posts').delete().eq('post_id', post.post_id)
+    if (postE) {
+      console.error(postE);
+      return
+    }
+    location.reload()
   }
 
   async function getComments() {
@@ -228,8 +236,38 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
     getComments()
   }
 
+
+  async function editPost(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const caption = formData.get('caption');
+    const content = formData.get('content');
+    const { error } = await supabase.from('posts').update({ caption, content }).eq('post_id', post.post_id)
+    if (error) {
+      console.error(error);
+      return
+    }
+    location.reload()
+  }
+
+  async function handleOpenEditDrawer() {
+    setOpenEditDrawer(!openEditDrawer)
+  }
+
+
   return (
     <>
+      <Drawer anchor="right" open={openEditDrawer} onClose={() => setOpenEditDrawer(false)} PaperProps={{
+        sx: {
+          width: isMobile ? '100%' : '50%',
+        }
+      }}>
+        <form className="flex flex-col gap-4 p-4" onSubmit={editPost}>
+          <input type="text" defaultValue={post.caption} className="w-full p-4 border-b-2 border-slate-200 outline-none" name="caption" />
+          <textarea defaultValue={post.content} className="w-full p-4 border-b-2 border-slate-200 outline-none h-[500px] resize-none" name="content" />
+          <button type="submit" className="bg-slate-800 hover:bg-slate-700 transition-all text-white p-4 rounded-lg">Edit</button>
+        </form>
+      </Drawer>
       <Drawer anchor="right" open={showDrawer} onClose={() => setShowDrawer(false)} PaperProps={{
         sx: {
           width: isMobile ? '100%' : '50%',
@@ -363,6 +401,16 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
                 <p>{post.likes}</p>
                 {
                   liked ? <Image src="/postCard/liked.svg" width={35} height={35} alt="LikeLogo" /> : <Image src="/postCard/likes.svg" width={35} height={35} alt="LikeLogo" />
+                }
+              </button>
+              <button onClick={handleOpenEditDrawer}>
+                {
+                  currentUser !== undefined && post.user_id === currentUser.id ? <Image src="/postCard/edit.svg" width={35} height={35} alt="EditLogo" /> : null
+                }
+              </button>
+              <button onClick={deletePost}>
+                {
+                  currentUser !== undefined && post.user_id === currentUser.id ? <Image src="/postCard/delete.svg" width={35} height={35} alt="DeleteLogo" /> : null
                 }
               </button>
             </div>

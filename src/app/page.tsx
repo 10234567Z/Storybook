@@ -39,7 +39,6 @@ export default function Page() {
         router.push("/login");
       }
     }
-    
     getRandomPosts()
     checkSession();
   }, []);
