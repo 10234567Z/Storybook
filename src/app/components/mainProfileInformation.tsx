@@ -228,7 +228,7 @@ export default function MainProfileInfo({ user }: any) {
                     </form>
                 </div>
             </Drawer>
-            <div className="w-screen flex flex-col sm:flex-row justify-center items-center">
+            <div className="w-screen flex flex-col sm:flex-row justify-center items-center m-4">
                 <div className="w-1/3 h-1/3 flex flex-col gap-4 justify-center items-center">
                     <Image src={profilePic} className="rounded-full" alt="Profile Picture" width={150} height={150} />
                     {!notAuthUser && <button onClick={() => setOpenEditProfileDrawer(true)}>
@@ -252,7 +252,7 @@ export default function MainProfileInfo({ user }: any) {
                             <Image src="/postCard/edit.svg" alt="Edit" width={25} height={25} />
                         </button>
                     </div>
-                    <div className="flex flex-row gap-4 mt-6">
+                    <div className="flex flex-row gap-4 mt-6 flex-wrap">
                         <p className="text-lg"><strong>Posts</strong>: {numberofPosts}</p>
                         <p className="text-lg"><strong>Comments</strong>: {numberofComments}</p>
                         <p className="text-lg"><strong>Followers</strong>: {numberofFollowers}</p>
