@@ -68,6 +68,21 @@ export default function Page() {
       getPosts()
     }).subscribe()
 
+  if (currentUser !== undefined) {
+    supabase.channel('Delete Posts').on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: "public",
+        table: "posts",
+        filter: `user_id=eq.${currentUser.id}`
+      },
+      (payload) => {
+        checkSession()
+        getPosts()
+      }).subscribe()
+  }
+
   function handleOpenPostDrawer() {
     setOpenPostDrawer(!openPostDrawer)
   }
@@ -87,8 +102,8 @@ export default function Page() {
   }
 
   return loading ? (
-    <div>
-      <h1>Loading...</h1>
+    <div className="flex w-screen h-screen justify-center items-center">
+      <Image src="/loading.svg" width={100} height={100} alt="Loading" />
     </div>
   ) : (
     <>
@@ -114,7 +129,7 @@ export default function Page() {
           <button onClick={handleOpenPostDrawer} className=" p-4 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">Create Post</button>
           <div className="w-screen py-3 font-extrabold text-2xl text-center bg-black text-white">Posts</div>
           <div className="w-screen flex flex-col justify-center items-center gap-8">
-            
+
             {posts.length === 0 ? "Nothing here yet..." : posts.map((post) => (
               <PostCard key={post.post_id} post={post} updating={updating} />
             ))}

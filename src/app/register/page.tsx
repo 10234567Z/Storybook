@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import Navbar from "../components/navbar";
 import useSignedIn from "@/hooks/useSignedIn";
+import Image from "next/image";
 
 export default function Login() {
-    const [guestRegister, setGuestRegister] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
     const [pending, setPending] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(true);
@@ -36,15 +36,15 @@ export default function Login() {
             setPending(false);
             return;
         }
-        const {data: dupeU , error: errorU } = await supabase.from("users").select("*").eq("raw_user_meta_data->>name", username);
+        const { data: dupeU, error: errorU } = await supabase.from("users").select("*").eq("raw_user_meta_data->>name", username);
         console.log(dupeU)
-        if (dupeU !== null) {
+        if (dupeU !== null && dupeU.length > 0){
             setError("Username already in use");
             setPending(false);
             return;
         }
 
-        const { data , error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -68,8 +68,8 @@ export default function Login() {
         setPending(false);
     };
     return loading ? (
-        <div>
-            <h1>Loading...</h1>
+        <div className="flex w-screen h-screen justify-center items-center">
+            <Image src="/loading.svg" width={100} height={100} alt="Loading" />
         </div>
     ) : (
         <>
@@ -105,12 +105,11 @@ export default function Login() {
                     />
                     <hr className="w-full border-1 border-black" />
                     <button
-                        onClick={() => setGuestRegister(true)}
                         type="submit"
                         className="bg-blue-900 rounded-md transition-all hover:bg-blue-800 text-white p-2"
                         disabled={pending}
                     >
-                        { pending ? "Registering..." : "Register"}
+                        {pending ? "Registering..." : "Register"}
                     </button>
                     <p className="text-red-900">{error}</p>
                     <Link href="/login">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import Navbar from "../components/navbar";
 import useSignedIn from "@/hooks/useSignedIn";
+import Image from "next/image";
 
 export default function Login() {
     const [guestLogin, setGuestLogin] = useState<boolean>(false);
@@ -54,8 +55,8 @@ export default function Login() {
         setPending(false);
     };
     return loading ? (
-        <div>
-            <h1>Loading...</h1>
+        <div className="flex w-screen h-screen justify-center items-center">
+          <Image src="/loading.svg" width={100} height={100} alt="Loading" />
         </div>
     ) : (
         <>

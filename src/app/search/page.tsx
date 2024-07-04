@@ -17,7 +17,7 @@ export default function Page() {
     const [searchedUser, setSearchedUser] = useState<any>(undefined);
     const [currentUser, setCurrentUser] = useState<any>(undefined);
     const [openPostDrawer, setOpenPostDrawer] = useState<boolean>(false);
-    const [followed , setFollowed] = useState<boolean>(false);
+    const [followed, setFollowed] = useState<boolean>(false);
     const [posts, setPosts] = useState<any[]>([]);
     const [error, setError] = useState<string>("");
     const [updating, setUpdating] = useState<boolean>(false);
@@ -51,7 +51,7 @@ export default function Page() {
         }
     }
 
-    async function followCheck(){
+    async function followCheck() {
         const { data, error } = await supabase.from("following").select("*").eq("user_id", currentUser.id).eq("following_id", searchedUser.id)
         if (error) {
             console.error(error)
@@ -85,12 +85,12 @@ export default function Page() {
         getSearchedUser()
         setLoading(false)
     }, [search, currentUser])
-    
+
     useEffect(() => {
         if (searchedUser !== undefined) {
             followCheck()
         }
-    }, [currentUser , searchedUser])
+    }, [currentUser, searchedUser])
 
     useEffect(() => {
         checkSession();
@@ -103,14 +103,14 @@ export default function Page() {
     }, [searchedUser])
 
     async function handleFollow() {
-        if(followed){
+        if (followed) {
             const { data, error } = await supabase.from("following").delete().eq("user_id", currentUser.id).eq("following_id", searchedUser.id)
             if (error) {
                 console.error(error)
             }
             setFollowed(false)
         }
-        else{
+        else {
             const { error } = await supabase.from("following").insert([{ user_id: currentUser.id, following_id: searchedUser.id }])
             if (error) {
                 console.error(error)
@@ -132,8 +132,8 @@ export default function Page() {
 
 
     return loading ? (
-        <div>
-            <h1>Loading...</h1>
+        <div className="flex w-screen h-screen justify-center items-center">
+            <Image src="/loading.svg" width={100} height={100} alt="Loading" />
         </div>
     ) : (
         <>

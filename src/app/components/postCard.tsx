@@ -1,6 +1,7 @@
 'use client'
 import { createClient } from "@/utils/supabase/client";
 import { Drawer, useMediaQuery } from "@mui/material";
+import { formatDistance } from "date-fns";
 import moment from "moment";
 import Image from "next/image";
 import Link from "next/link";
@@ -113,7 +114,6 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
       console.error(postE);
       return
     }
-    location.reload()
   }
 
   async function getComments() {
@@ -359,7 +359,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
                         }
                         <p className="text-slate-600 text-sm font-bold">{reply.users.raw_user_meta_data.name}</p>
                         <div className="flex flex-row gap-4 justify-end items-center">
-                          <p className="text-slate-600 text-sm">{moment(reply.i_at).startOf('minutes').fromNow()}</p>
+                          <p className="text-slate-600 text-sm">{formatDistance(reply.i_at , new Date() , { addSuffix: true})}</p>
                           <button onClick={() => { handleLikeComment(reply.comment_id) }} >
                             {
                               commentLiked.find(like => like.comment_id === reply.comment_id && like.user_id === currentUser.id) ? <Image src="/postCard/liked.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" /> : <Image src="/postCard/likes.svg" width={35} height={35} alt="LikeLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
@@ -389,7 +389,10 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
         }
       </Drawer>
       {
-        loading ? <h1>Loading...</h1>
+        loading ? 
+        <div className="flex w-screen h-screen justify-center items-center">
+          <Image src="/loading.svg" width={100} height={100} alt="Loading" />
+        </div>
           :
           <div className="flex flex-col justify-center items-center p-4 bg-white rounded-lg shadow-lg w-[320px] md:w-[680px] gap-4">
             <Link href={`/search?q=${user}`}>
