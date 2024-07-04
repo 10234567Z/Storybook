@@ -9,8 +9,33 @@ export default function MainProfileInfo({ user }: any) {
     const [numberofComments, setNumberofComments] = useState<number>(0)
     const [numberofFollowers, setNumberofFollowers] = useState<number>(0)
     const [numberofFollowing, setNumberofFollowing] = useState<number>(0)
-    const [editing , setEditing] = useState<boolean>(false)
+    const [editing, setEditing] = useState<boolean>(false)
     const supabase = createClient()
+
+    async function fetchFollowings() {
+        const { data, error } = await supabase
+            .from('following')
+            .select('*')
+            .eq('user_id', user.id)
+        if (error) {
+            console.error(error)
+        } else {
+            setNumberofFollowers(data.length)
+        }
+    }
+
+    async function fetchFollowers() {
+        const { data, error } = await supabase
+            .from('following')
+            .select('*')
+            .eq('following_id', user.id)
+        if (error) {
+            console.error(error)
+        } else {
+            setNumberofFollowing(data.length)
+        }
+    }
+
     useEffect(() => {
         async function fetchUserStats() {
             const { data, error } = await supabase
@@ -35,42 +60,17 @@ export default function MainProfileInfo({ user }: any) {
                 setNumberofComments(data.length)
             }
         }
-
-        async function fetchFollowings() {
-            const { data, error } = await supabase
-                .from('following')
-                .select('*')
-                .eq('user_id', user.id)
-            if (error) {
-                console.error(error)
-            } else {
-                setNumberofFollowers(data.length)
-            }
-        }
-
-        async function fetchFollowers() {
-            const { data, error } = await supabase
-                .from('following')
-                .select('*')
-                .eq('following_id', user.id)
-            if (error) {
-                console.error(error)
-            } else {
-                setNumberofFollowing(data.length)
-            }
-        }
-
         fetchUserComments()
         fetchFollowers()
         fetchFollowings()
         fetchUserStats()
     }, [])
 
-    function handleEditing(){
+    function handleEditing() {
         setEditing(!editing)
     }
 
-    async function handleEditSubmit(e: any){
+    async function handleEditSubmit(e: any) {
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
         const bio = formData.get('bio') as string
@@ -83,15 +83,14 @@ export default function MainProfileInfo({ user }: any) {
         if (error) {
             console.error(error)
         }
-        else{
+        else {
             setEditing(false)
         }
     }
 
+
     const userName = user.user_metadata !== undefined ? user.user_metadata.name : user.raw_user_meta_data.name;
     const bio = user.user_metadata !== undefined ? user.user_metadata.bio : user.raw_user_meta_data.bio;
-
-    const isNotAuthUser = user.user_metadata === undefined;
     return (
         <div className="w-screen flex flex-col sm:flex-row justify-center items-center">
             <div className="w-1/3 h-1/3 flex flex-col justify-center items-center">
@@ -107,8 +106,8 @@ export default function MainProfileInfo({ user }: any) {
                                 <button>Save</button>
                             </form>
                         )
-                        : 
-                        <p className="text-lg">{bio === '' ? "No bio set by user yet.." : bio}</p>
+                            :
+                            <p className="text-lg">{bio === '' ? "No bio set by user yet.." : bio}</p>
                     }
                     <button onClick={handleEditing}>
                         <Image src="/postCard/edit.svg" alt="Edit" width={25} height={25} />

@@ -17,6 +17,7 @@ export default function Page() {
     const [searchedUser, setSearchedUser] = useState<any>(undefined);
     const [currentUser, setCurrentUser] = useState<any>(undefined);
     const [openPostDrawer, setOpenPostDrawer] = useState<boolean>(false);
+    const [followed , setFollowed] = useState<boolean>(false);
     const [posts, setPosts] = useState<any[]>([]);
     const [error, setError] = useState<string>("");
     const [updating, setUpdating] = useState<boolean>(false);
@@ -50,6 +51,17 @@ export default function Page() {
         }
     }
 
+    async function followCheck(){
+        const { data, error } = await supabase.from("following").select("*").eq("user_id", currentUser.id).eq("following_id", searchedUser.id)
+        if (error) {
+            console.error(error)
+            return
+        }
+        if (data[0] !== undefined) {
+            setFollowed(true)
+        }
+    }
+
     useEffect(() => {
         setLoading(true)
         async function getSearchedUser() {
@@ -73,6 +85,12 @@ export default function Page() {
         getSearchedUser()
         setLoading(false)
     }, [search, currentUser])
+    
+    useEffect(() => {
+        if (searchedUser !== undefined) {
+            followCheck()
+        }
+    }, [currentUser , searchedUser])
 
     useEffect(() => {
         checkSession();
@@ -84,7 +102,22 @@ export default function Page() {
         }
     }, [searchedUser])
 
-    console.log(error)
+    async function handleFollow() {
+        if(followed){
+            const { data, error } = await supabase.from("following").delete().eq("user_id", currentUser.id).eq("following_id", searchedUser.id)
+            if (error) {
+                console.error(error)
+            }
+            setFollowed(false)
+        }
+        else{
+            const { error } = await supabase.from("following").insert([{ user_id: currentUser.id, following_id: searchedUser.id }])
+            if (error) {
+                console.error(error)
+            }
+            setFollowed(true)
+        }
+    }
 
     supabase.channel('Update User Page').on(
         'postgres_changes',
@@ -113,6 +146,7 @@ export default function Page() {
             {searchedUser !== undefined && (
                 <div className="w-screen flex flex-col justify-center items-center gap-8">
                     <MainProfileInfo user={searchedUser} />
+                    <button onClick={handleFollow} className=" p-4 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">{followed ? "Unfollow" : "Follow"}</button>
                     <div className="w-screen py-3 font-extrabold text-2xl text-center bg-black text-white">Posts</div>
                     <div className="w-screen flex flex-col justify-center items-center gap-8">
 
