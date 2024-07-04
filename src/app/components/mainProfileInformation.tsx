@@ -16,7 +16,7 @@ export default function MainProfileInfo({ user }: any) {
         const { data, error } = await supabase
             .from('following')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('following_id', user.id)
         if (error) {
             console.error(error)
         } else {
@@ -28,7 +28,7 @@ export default function MainProfileInfo({ user }: any) {
         const { data, error } = await supabase
             .from('following')
             .select('*')
-            .eq('following_id', user.id)
+            .eq('user_id', user.id)
         if (error) {
             console.error(error)
         } else {
