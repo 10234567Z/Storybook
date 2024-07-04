@@ -3,6 +3,7 @@ import { createClient } from "@/utils/supabase/client";
 import { Drawer, useMediaQuery } from "@mui/material";
 import moment from "moment";
 import Image from "next/image";
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 type CommentLiked = {
@@ -298,7 +299,9 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
                       :
                       <p className="text-slate-800 text-lg">{comment.content}</p>
                   }
-                  <p className="text-slate-600 text-sm font-bold">{comment.users.raw_user_meta_data.name}</p>
+                  <Link href={`/search?q=${comment.users.raw_user_meta_data.name}`}>
+                    <p className="text-slate-600 text-sm font-bold">{comment.users.raw_user_meta_data.name}</p>
+                  </Link>
                   <div className="flex flex-row gap-4 justify-end items-center">
                     <p className="text-slate-600 text-sm">{moment(comment.i_at).startOf('hour').fromNow()}</p>
                     <button className="flex flex-row gap-1" onClick={() => { handleReplyTo(comment.comment_id) }}>
@@ -389,7 +392,9 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
         loading ? <h1>Loading...</h1>
           :
           <div className="flex flex-col justify-center items-center p-4 bg-white rounded-lg shadow-lg w-[320px] md:w-[680px] gap-4">
-            <p className="text-gray-500 text-sm self-start"><strong>{user}</strong> at {post.date}</p>
+            <Link href={`/search?q=${user}`}>
+              <p className="text-gray-500 text-sm self-start"><strong>{user}</strong> at {post.date}</p>
+            </Link>
             <h1 className="text-2xl font-bold">{post.caption}</h1>
             <p className="text-gray-500 text-center w-[300px] md:w-[500px]">{post.content}</p>
             <div className="flex flex-row align-center justify-end gap-4 w-[300px] md:w-[660px] text-lg">
