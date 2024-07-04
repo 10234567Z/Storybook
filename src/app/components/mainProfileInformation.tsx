@@ -87,13 +87,18 @@ export default function MainProfileInfo({ user }: any) {
             setEditing(false)
         }
     }
+
+    const userName = user.user_metadata !== undefined ? user.user_metadata.name : user.raw_user_meta_data.name;
+    const bio = user.user_metadata !== undefined ? user.user_metadata.bio : user.raw_user_meta_data.bio;
+
+    const isNotAuthUser = user.user_metadata === undefined;
     return (
         <div className="w-screen flex flex-col sm:flex-row justify-center items-center">
             <div className="w-1/3 h-1/3 flex flex-col justify-center items-center">
                 <Image src='/profile/pfp.svg' alt="Profile Picture" width={100} height={100} />
             </div>
             <div>
-                <h3 className="text-lg font-bold">{user.user_metadata.name}</h3>
+                <h3 className="text-lg font-bold">{userName}</h3>
                 <div className="flex gap-4">
                     {
                         editing ? (
@@ -103,7 +108,7 @@ export default function MainProfileInfo({ user }: any) {
                             </form>
                         )
                         : 
-                        <p className="text-lg">{user.user_metadata.bio === '' ? "No bio set by user yet.." : user.user_metadata.bio}</p>
+                        <p className="text-lg">{bio === '' ? "No bio set by user yet.." : bio}</p>
                     }
                     <button onClick={handleEditing}>
                         <Image src="/postCard/edit.svg" alt="Edit" width={25} height={25} />

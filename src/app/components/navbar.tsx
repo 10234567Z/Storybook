@@ -42,10 +42,13 @@ const Navbar: React.FC<NavbarProps> = ({ signedIn }) => {
                         <Image src="/logo.png" alt="Storybook Logo" width={125} height={125} className=" hover:border transition-all hover:border-black border-solid p-2" />
                     </Link>
                     <div className={`flex flex-row gap-3 justify-center items-center px-2 font-normal`}>
-                        <form action="/search" method="get" className="flex flex-row gap-2">
-                            <input type="text" name="q" placeholder="Search" className="p-2 rounded-md outline-none" />
-                            <button type="submit" className="p-2 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">Search</button>
-                        </form>
+                        {
+                            signedIn && 
+                            <form action="/search" method="get" className="flex flex-row gap-2">
+                                <input type="text" name="q" placeholder="Search" className="p-2 rounded-md outline-none" />
+                                <button type="submit" className="p-2 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">Search</button>
+                            </form>
+                        }
                         <Link href="/">
                             <button className="m-2 lg:text-3xl md:text-2xl sm:text-xl text-xs">
                                 <p className="navControl">Home</p>

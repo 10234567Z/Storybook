@@ -36,12 +36,21 @@ export default function Login() {
             setPending(false);
             return;
         }
+        const {data: dupeU , error: errorU } = await supabase.from("users").select("*").eq("raw_user_meta_data->>name", username);
+        console.log(dupeU)
+        if (dupeU !== null) {
+            setError("Username already in use");
+            setPending(false);
+            return;
+        }
+
         const { data , error } = await supabase.auth.signUp({
             email,
             password,
             options: {
                 data: {
                     name: username,
+                    display_name: username,
                     posts: 0,
                     comments: 0,
                     likedposts: 0,

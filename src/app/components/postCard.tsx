@@ -247,7 +247,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
       console.error(error);
       return
     }
-    location.reload()
+    handleOpenEditDrawer()
   }
 
   async function handleOpenEditDrawer() {

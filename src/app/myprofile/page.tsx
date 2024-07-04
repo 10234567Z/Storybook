@@ -56,23 +56,17 @@ export default function Page() {
     }
   }, [currentUser])
 
-  useEffect(() => {
-    const channel = supabase.channel('Update_Profile_Page').on(
-      'postgres_changes',
-      {
-        event: "UPDATE",
-        schema: "public",
-        table: "posts",
-      },
-      (payload) => {
-        checkSession()
-        getPosts()
-      }).subscribe()
-
-    return () => {
-      channel.unsubscribe()
-    }
-  }, [supabase])
+  supabase.channel('Update_Profile_Page').on(
+    'postgres_changes',
+    {
+      event: "UPDATE",
+      schema: "public",
+      table: "posts",
+    },
+    (payload) => {
+      checkSession()
+      getPosts()
+    }).subscribe()
 
   function handleOpenPostDrawer() {
     setOpenPostDrawer(!openPostDrawer)

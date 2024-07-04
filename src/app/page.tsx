@@ -15,6 +15,7 @@ export default function Page() {
 
   const router = useRouter();
 
+
   async function getRandomPosts() {
     setUpdating(true)
     const { data, error } = await supabase.from("posts").select("*").order("i_at", { ascending: false });
