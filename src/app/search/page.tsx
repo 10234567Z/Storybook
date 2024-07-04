@@ -18,6 +18,7 @@ export default function Page() {
     const [currentUser, setCurrentUser] = useState<any>(undefined);
     const [openPostDrawer, setOpenPostDrawer] = useState<boolean>(false);
     const [posts, setPosts] = useState<any[]>([]);
+    const [error, setError] = useState<string>("");
     const [updating, setUpdating] = useState<boolean>(false);
     const searchParams = useSearchParams()
     const search = searchParams.get("q")
@@ -55,14 +56,20 @@ export default function Page() {
             const { data, error } = await supabase.from("users").select("*").eq("raw_user_meta_data->>name", search)
             if (error) {
                 console.error(error)
+                setLoading(false)
                 return
             }
-            console.log(currentUser)
-            if(currentUser !== undefined && data[0].id === currentUser.id){
+            if (currentUser !== undefined && data[0] !== undefined && data[0].id === currentUser.id) {
                 router.push("/myprofile")
+            }
+            if (data[0] === undefined) {
+                setError("User not found, type a valid username")
+                setLoading(false)
+                return
             }
             setSearchedUser(data[0])
         }
+
         getSearchedUser()
         setLoading(false)
     }, [search, currentUser])
@@ -76,6 +83,8 @@ export default function Page() {
             getPosts();
         }
     }, [searchedUser])
+
+    console.log(error)
 
     supabase.channel('Update User Page').on(
         'postgres_changes',
@@ -96,7 +105,12 @@ export default function Page() {
     ) : (
         <>
             <Navbar signedIn={signedIn} />
-            {searchedUser !== undefined && signedIn ? (
+            {error !== "" && (
+                <div className="w-screen flex flex-col justify-center items-center gap-8">
+                    <div className="w-screen py-3 text-2xl text-center text-black">{error}</div>
+                </div>
+            )}
+            {searchedUser !== undefined && (
                 <div className="w-screen flex flex-col justify-center items-center gap-8">
                     <MainProfileInfo user={searchedUser} />
                     <div className="w-screen py-3 font-extrabold text-2xl text-center bg-black text-white">Posts</div>
@@ -107,11 +121,8 @@ export default function Page() {
                         ))}
                     </div>
                 </div>
-            ) : (
-                <>
-                    <h1>Redirecting...</h1>
-                </>
-            )}
+            )
+            }
         </>
     );
 }
