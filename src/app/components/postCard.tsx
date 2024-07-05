@@ -303,7 +303,7 @@ export default function PostCard({ post, updating }: { post: any, updating: bool
                     <p className="text-slate-600 text-sm font-bold">{comment.users.raw_user_meta_data.name}</p>
                   </Link>
                   <div className="flex flex-row gap-4 justify-end items-center">
-                    <p className="text-slate-600 text-sm">{moment(comment.i_at).startOf('hour').fromNow()}</p>
+                    <p className="text-slate-600 text-sm">{formatDistance(comment.i_at , new Date() , { addSuffix: true})}</p>
                     <button className="flex flex-row gap-1" onClick={() => { handleReplyTo(comment.comment_id) }}>
                       <p>{comment.replied_to}</p>
                       <Image src="/comments/reply.svg" width={35} height={35} alt="ReplyLogo" className="hover:bg-slate-400 focus:bg-slate-700 rounded-full transition-all" />
