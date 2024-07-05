@@ -1,7 +1,7 @@
 "use client";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Navbar from "../components/navbar";
 import MainProfileInfo from "../components/mainProfileInformation";
 import { Drawer, useMediaQuery } from "@mui/material";
@@ -9,7 +9,7 @@ import Image from "next/image";
 import moment from "moment";
 import PostCard from "../components/postCard";
 
-export default function Page() {
+function Page() {
     const supabase = createClient();
 
     const [signedIn, setSignedIn] = useState<boolean>(false);
@@ -137,26 +137,34 @@ export default function Page() {
         </div>
     ) : (
         <>
-            <Navbar signedIn={signedIn} />
-            {error !== "" && (
-                <div className="w-screen flex flex-col justify-center items-center gap-8">
-                    <div className="w-screen py-3 text-2xl text-center text-black">{error}</div>
-                </div>
-            )}
-            {searchedUser !== undefined && (
-                <div className="w-screen flex flex-col justify-center items-center gap-8">
-                    <MainProfileInfo user={searchedUser} />
-                    <button onClick={handleFollow} className=" p-4 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">{followed ? "Unfollow" : "Follow"}</button>
-                    <div className="w-screen py-3 font-extrabold text-2xl text-center bg-black text-white">Posts</div>
+                <Navbar signedIn={signedIn} />
+                {error !== "" && (
                     <div className="w-screen flex flex-col justify-center items-center gap-8">
-
-                        {posts.length === 0 ? "Nothing here yet..." : posts.map((post) => (
-                            <PostCard key={post.post_id} post={post} updating={updating} />
-                        ))}
+                        <div className="w-screen py-3 text-2xl text-center text-black">{error}</div>
                     </div>
-                </div>
-            )
-            }
+                )}
+                {searchedUser !== undefined && (
+                    <div className="w-screen flex flex-col justify-center items-center gap-8">
+                        <MainProfileInfo user={searchedUser} />
+                        <button onClick={handleFollow} className=" p-4 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">{followed ? "Unfollow" : "Follow"}</button>
+                        <div className="w-screen py-3 font-extrabold text-2xl text-center bg-black text-white">Posts</div>
+                        <div className="w-screen flex flex-col justify-center items-center gap-8">
+
+                            {posts.length === 0 ? "Nothing here yet..." : posts.map((post) => (
+                                <PostCard key={post.post_id} post={post} updating={updating} />
+                            ))}
+                        </div>
+                    </div>
+                )
+                }
         </>
+    );
+}
+
+export default function SearchPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <Page />
+        </Suspense>
     );
 }
