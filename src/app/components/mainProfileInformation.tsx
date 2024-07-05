@@ -239,7 +239,7 @@ export default function MainProfileInfo({ user }: any) {
                     <h3 className="text-lg font-bold">{userName}</h3>
                     <div className="flex gap-4">
                         {
-                            editing ? (
+                            editing && !notAuthUser ? (
                                 <form onSubmit={handleEditSubmit} className="flex gap-3">
                                     <input type="text" name="bio" placeholder="bio" className="p-4 text-lg" defaultValue={bio} />
                                     <button className=" p-4 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">Save</button>
@@ -248,9 +248,12 @@ export default function MainProfileInfo({ user }: any) {
                                 :
                                 <p className="text-lg">{bio === '' ? "No bio set by user yet.." : bio}</p>
                         }
-                        <button onClick={handleEditing}>
-                            <Image src="/postCard/edit.svg" alt="Edit" width={25} height={25} />
-                        </button>
+
+                        {!notAuthUser &&
+                            <button onClick={handleEditing}>
+                                <Image src="/postCard/edit.svg" alt="Edit" width={25} height={25} />
+                            </button>
+                        }
                     </div>
                     <div className="flex flex-row gap-4 mt-6 flex-wrap">
                         <p className="text-lg"><strong>Posts</strong>: {numberofPosts}</p>
