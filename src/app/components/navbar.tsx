@@ -45,8 +45,8 @@ const Navbar: React.FC<NavbarProps> = ({ signedIn }) => {
                         {
                             signedIn && 
                             <form action="/search" method="get" className="flex flex-row gap-2">
-                                <input type="text" name="q" placeholder="Search" className="p-2 rounded-md outline-none" />
-                                <button type="submit" className="p-2 px-6 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">Search</button>
+                                <input type="text" name="q" placeholder="Search" className="p-2 rounded-md outline-none w-[75px] md:w-auto" />
+                                <button type="submit" className="p-2 md:px-4 rounded-md bg-slate-800 text-white transition-all hover:bg-slate-700">Search</button>
                             </form>
                         }
                         <Link href="/">
